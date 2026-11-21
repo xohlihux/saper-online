@@ -677,6 +677,117 @@ showProf=function(){
   if(D.best&&D.best[day]!==undefined)x.appendChild(el('p','',tr('dailyToday')+fmtT(D.best[day])));
   d.insertBefore(x,d.children[d.children.length-1]);
 };
+window.__R={get:()=>({RACE,RB,ME,RWIN})};
 window.applyLang();
+})();
+(function(){
+const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e;};
+const L2=a=>a[LANG==='ru'?0:1];
+RAR.push(['Особый','#22d3ee']);RNN.push(['Особый','Special']);
+[['Розовый','Pink',0,{c:'#ec4899'}],['Голубой','Cyan',0,{c:'#06b6d4'}],['Белый','White',0,{c:'#f8fafc'}],['Салатовый','Lime',0,{c:'#84cc16'}],
+['Сердце','Heart',1,{e:'❤️',g:'#ef4444'}],['Звезда','Star',1,{e:'⭐',g:'#eab308'}],['Грибок','Mushroom',1,{e:'🍄',g:'#ef4444'}],['Ромашка','Daisy',1,{e:'🌼',g:'#eab308'}],
+['Полосатый','Striped',1,{s:['#22c55e','#f8fafc','#a855f7']}],['Шахматный','Chess',1,{ck:['#111827','#f8fafc']}],
+['Радуга','Rainbow',2,{s:['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7']}],['Закат','Sunset',2,{gr:['#f97316','#7c3aed']}],['Лёд','Ice',2,{gr:['#e0f2fe','#0ea5e9']}],
+['Призрак','Ghost',2,{e:'👻',g:'#a855f7'}],['Бабочка','Butterfly',2,{e:'🦋',g:'#a855f7'}],
+['Единорог','Unicorn',3,{e:'🦄',g:'#f59e0b'}],['Золотой','Golden',3,{gr:['#fde047','#b45309']}],['Галактика','Galaxy',3,{gr:['#1e1b4b','#7c3aed']}],
+['Кубок','Trophy',4,{e:'🏆',g:'#f59e0b'}],['Молния','Lightning',4,{e:'⚡',g:'#eab308'}],['Падающая звезда','Shooting star',4,{e:'🌠',g:'#38bdf8'}]
+].forEach(([ru,en,r,sp])=>{SK.push(Object.assign({r},sp));SKN.push([ru,en]);});
+drawFlag=function(c,cx,cy,s,id){
+  const k=SK[id]||SK[0];
+  if(k.e){if(k.g){c.shadowColor=k.g;c.shadowBlur=s*0.3;}c.fillText(k.e,cx,cy);c.shadowBlur=0;return;}
+  const x=cx-s*0.2,y=cy-s*0.34,w=s*0.07,fx=x+w,fw=s*0.53,fh=s*0.4;
+  c.fillStyle='#e5e7eb';c.fillRect(x,y,w,s*0.68);
+  c.save();c.beginPath();c.moveTo(fx,y);c.lineTo(fx+fw,y+fh/2);c.lineTo(fx,y+fh);c.closePath();c.clip();
+  if(k.s){const n=k.s.length;k.s.forEach((col,i)=>{c.fillStyle=col;c.fillRect(fx,y+fh*i/n,fw,fh/n+1);});}
+  else if(k.gr){const g=c.createLinearGradient(fx,y,fx+fw,y+fh);g.addColorStop(0,k.gr[0]);g.addColorStop(1,k.gr[1]);c.fillStyle=g;c.fillRect(fx,y,fw,fh);}
+  else if(k.ck){const q=Math.max(2,fw/5);for(let i=0;i<6;i++)for(let j=0;j<4;j++){c.fillStyle=(i+j)%2?k.ck[0]:k.ck[1];c.fillRect(fx+i*q,y+j*q*0.8,q+1,q*0.8+1);}}
+  else{c.fillStyle=k.c;c.fillRect(fx,y,fw,fh);}
+  c.restore();
+};
+const TH={
+neon:{n:['Неон','Neon'],bg:'#0d1117',grid:'#171c26',acc:'#22d3ee',cc:'#3a4254',co:'#cfd6e4',cv:'#11141c'},
+classic:{n:['Классика','Classic'],bg:'#0b3d3d',grid:'#0f5252',acc:'#fde047',cc:'#9ca3af',co:'#e5e7eb',cv:'#083030'},
+ocean:{n:['Океан','Ocean'],bg:'#06141f',grid:'#0b2536',acc:'#38bdf8',cc:'#1e3a5f',co:'#dbeafe',cv:'#041019'},
+sunset:{n:['Закат','Sunset'],bg:'#1a0d1f',grid:'#2b1530',acc:'#fb923c',cc:'#4a2545',co:'#fde8d7',cv:'#12081a'},
+forest:{n:['Лес','Forest'],bg:'#0b1a10',grid:'#13281a',acc:'#4ade80',cc:'#27422d',co:'#e1f5df',cv:'#08130c'},
+gold:{n:['Золото','Gold'],bg:'#1a1405',grid:'#2a2008',acc:'#fbbf24',cc:'#473a12',co:'#fef3c7',cv:'#120e03'}};
+let TC=TH.neon;
+const wins=()=>P.wins.n+P.wins.ng;
+const AC=[
+{id:'first',n:['Первая победа','First victory'],d:['Выиграй любую партию','Win any game'],ok:()=>wins()>=1,rw:{t:'classic'}},
+{id:'w10',n:['Ветеран','Veteran'],d:['10 побед','10 wins'],ok:()=>wins()>=10,rw:{s:36}},
+{id:'w50',n:['Мастер','Master'],d:['50 побед','50 wins'],ok:()=>wins()>=50,rw:{t:'gold'}},
+{id:'fast',n:['Молния','Lightning'],d:['Выиграй 15×15 быстрее 60 секунд','Win 15×15 in under 60 seconds'],ok:()=>Math.min(P.best.n[15]??1e12,P.best.ng[15]??1e12)<60000,rw:{s:37}},
+{id:'logic',n:['Логик','Logician'],d:['5 побед без угадывания','5 no-guess wins'],ok:()=>P.wins.ng>=5,rw:{t:'ocean'}},
+{id:'big',n:['Покоритель','Conqueror'],d:['Выиграй поле 80×80 или 120×120','Win an 80×80 or 120×120 field'],ok:()=>[80,120].some(n=>P.best.n[n]!==undefined||P.best.ng[n]!==undefined),rw:{s:38}},
+{id:'race',n:['Гонщик','Racer'],d:['Выиграй гонку','Win a race'],ok:()=>(P.rw||0)>=1,rw:{t:'sunset'}},
+{id:'daily3',n:['Ежедневник','Regular'],d:['Пройди 3 ежедневных поля','Clear 3 daily fields'],ok:()=>((P.daily||{}).done||0)>=3,rw:{t:'forest'}},
+{id:'streak3',n:['Три дня подряд','3-day streak'],d:['Серия 3 дня в ежедневном поле','A 3-day daily streak'],ok:()=>((P.daily||{}).streak||0)>=3,rw:{s:28}},
+{id:'coll',n:['Коллекционер','Collector'],d:['Собери 15 скинов','Collect 15 skins'],ok:()=>P.own.length>=15,rw:{s:33}}];
+const rwName=a=>a.rw.s!==undefined?skn(a.rw.s):L2(TH[a.rw.t].n);
+let busy=false;
+function checkAch(){
+  if(busy)return;busy=true;P.ach=P.ach||{};P.th=P.th||{};const msgs=[];
+  AC.forEach(a=>{if(P.ach[a.id]||!a.ok())return;P.ach[a.id]=1;
+    if(a.rw.s!==undefined){if(!P.own.includes(a.rw.s))P.own.push(a.rw.s);}else P.th[a.rw.t]=1;
+    msgs.push('🏅 '+L2(a.n)+' → '+rwName(a));});
+  if(msgs.length){saveP0();msgs.forEach((t,i)=>setTimeout(()=>toast(t,'#22d3ee'),i*4600));}
+  busy=false;
+}
+const saveP0=saveP;
+saveP=function(){saveP0();checkAch();};
+const showProf1=showProf;
+showProf=function(){
+  showProf1();const d=$('prof'),x=el('div');x.appendChild(el('h3','',L2(['🏅 Достижения','🏅 Achievements'])));
+  AC.forEach(a=>{const done=!!(P.ach||{})[a.id];
+    const p=el('p','',(done?'✔ ':'🔒 ')+L2(a.n)+' — '+L2(a.d)+' ['+L2(['награда','reward'])+': '+rwName(a)+']');
+    p.style.cssText='font-size:14px;text-align:left;max-width:340px;margin:6px auto;'+(done?'':'opacity:0.6');x.appendChild(p);});
+  d.insertBefore(x,d.children[d.children.length-1]);
+};
+function applyTheme(){
+  TC=TH[SET.theme]&&(SET.theme==='neon'||(P.th||{})[SET.theme])?TH[SET.theme]:TH.neon;
+  let s=document.getElementById('themeCss');
+  if(!s||!s.tagName){s=document.createElement('style');s.id='themeCss';document.body.appendChild(s);}
+  s.textContent='body{background-color:'+TC.bg+';background-image:linear-gradient('+TC.grid+' 1px,transparent 1px),linear-gradient(90deg,'+TC.grid+' 1px,transparent 1px)}#cv{background:'+TC.cv+'}h2,h3,.cap{color:'+TC.acc+';text-shadow:0 0 8px '+TC.acc+'}.l1{text-shadow:0 0 12px '+TC.acc+'}#tabs{border-top-color:'+TC.acc+';box-shadow:0 -4px 18px '+TC.acc+'55}.tile.on{box-shadow:0 0 14px '+TC.acc+'}';
+  if(N)draw();
+}
+const showSets1=showSets;
+showSets=function(){
+  showSets1();const d=$('sets'),g=el('div','grp'),r=el('div','tiles');
+  Object.keys(TH).forEach(id=>{
+    const un=id==='neon'||!!(P.th||{})[id],b=el('button','tile'+((SET.theme||'neon')===id?' on':''),(un?'':'🔒 ')+L2(TH[id].n));
+    b.onclick=()=>{if(!un){toast(L2(['Открывается за достижение','Unlocked by an achievement']),'#9ca3af');return;}SET.theme=id;saveSet();applyTheme();showSets();};
+    r.appendChild(b);});
+  g.append(el('div','cap',L2(['ТЕМА','THEME'])),r);d.insertBefore(g,d.children[5]);
+};
+function drawB(b,bx,by,s,w,h){
+  const g=s>8?1:0,x0=Math.max(0,Math.floor(-bx/s)),y0=Math.max(0,Math.floor(-by/s)),x1=Math.min(N-1,Math.floor((w-bx)/s)),y1=Math.min(N-1,Math.floor((h-by)/s));
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold '+Math.floor(s*0.6)+'px sans-serif';
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+    const i=y*N+x,v=b.cells[i],px=bx+x*s,py=by+y*s,o=b.own[i]>0?cols[b.own[i]-1]:null;
+    ctx.fillStyle=v===10?'#e11d48':v===9?'#9ca3af':v===-2?(s<12?'#ef4444':TC.cc):v===-1?TC.cc:(s<12&&o)?o:TC.co;
+    ctx.fillRect(px,py,s-g,s-g);
+    if(s<12)continue;
+    const cx=px+s/2,cy=py+s/2+1;
+    if(v>0&&v<=8){ctx.fillStyle=NC[v];ctx.fillText(v,cx,cy);}
+    else if(v>=9)ctx.fillText('💣',cx,cy);
+    else if(v===-2)drawFlag(ctx,cx,cy,s,b.sk[i]||0);
+  }
+}
+draw=function(){
+  const w=cv.clientWidth,h=cv.clientHeight,s=C*scale,R=window.__R.get();
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);if(!N)return;
+  if(!R.RACE){drawB({cells,own,sk},ox,oy,s,w,h);return;}
+  R.RB.forEach((b,k)=>{
+    const bx=ox+k*(N+3)*s,by=oy+2*s;
+    if(bx>w||bx+N*s<0||by>h||by+N*s<0)return;
+    ctx.fillStyle=b.s===R.RWIN?'#f59e0b':(b.s===R.ME?TC.acc:'#374151');ctx.fillRect(bx-3,by-3,N*s+6,N*s+6);
+    ctx.fillStyle=TC.cv;ctx.fillRect(bx,by,N*s,N*s);
+    ctx.textAlign='left';ctx.textBaseline='bottom';ctx.font='bold 14px monospace';ctx.fillStyle=cols[b.c]||'#fff';
+    ctx.fillText(b.n+(b.s===R.ME?' ★':''),Math.max(bx,4),Math.max(by-6,16));
+    drawB(b,bx,by,s,w,h);
+  });
+};
+applyTheme();checkAch();if(N)draw();
 })();
 </script></body></html>
