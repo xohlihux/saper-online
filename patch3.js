@@ -1,0 +1,11 @@
+const fs=require('fs');let s=fs.readFileSync('index.html','utf8');
+const R=(a,b)=>{if(!s.includes(a)){console.log('НЕ НАЙДЕНО: '+a.slice(0,70));return;}s=s.replace(a,()=>b);};
+R("const m=JSON.parse(e.data);\n  if(m.t==='error')return onErr(m);","const m=JSON.parse(e.data);window.__dec&&window.__dec(m);\n  if(m.t==='error')return onErr(m);");
+R("if(m.t==='full'){RACE=false;setRoom(m.code);}\n  MSGH(e);","if(m.t==='full'){RACE=false;setRoom(m.code);onFull(m);drawTop();draw();return;}\n  MSGH(e);");
+R("{nf:'notFound',started:'started',full:'roomFull',gone:'gone'}","{nf:'notFound',started:'started',full:'roomFull',gone:'gone',rate:'tooFast'}");
+R("window.__R={get:()=>({RACE,RB,ME,RWIN})};","window.__R={get:()=>({RACE,RB,ME,RWIN,RSTART})};");
+R("buildLobby();buildSetup();buildCodes();","buildLobby();buildSetup();buildCodes();window.afterBuild&&window.afterBuild();");
+R("if(m.md==='daily')dailyDone(pe?pe.dn:0);","if(m.md==='daily')dailyDone(pe?pe.dn:0,m.day);");
+R("function dailyDone(ms){\n  const day=mskDay(),","function dailyDone(ms,dy){\n  const day=dy||mskDay(),");
+R("  else $('err').textContent=msg;\n}","  else{$('err').textContent=msg;toast(msg,'#f87171');}\n}");
+fs.writeFileSync('index.html',s);console.log('готово');
