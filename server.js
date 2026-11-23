@@ -210,13 +210,27 @@ wss.on('connection',(ws,req)=>{
 setInterval(()=>{if(!wss.clients)return;wss.clients.forEach(w=>{if(w.alive===false){if(w.terminate)w.terminate();return;}w.alive=false;try{w.ping();}catch(e){}});},30000);
 server.listen(process.env.PORT||3000,()=>console.log('Сервер запущен: http://localhost:3000'));
 const TYPES={'.html':'text/html; charset=utf-8','.json':'application/json','.js':'text/javascript','.png':'image/png'};
-const PUB=['/index.html','/manifest.json','/sw.js','/icon-192.png','/icon-512.png','/.well-known/assetlinks.json'];
+const PUB=['/index.html','/manifest.json','/sw.js','/icon-192.png','/icon-512.png','/.well-known/assetlinks.json','/music.mp3'];
 server.removeAllListeners('request');
 server.on('request',(req,res)=>{
   let f=req.url.split('?')[0];if(f==='/')f='/index.html';
   if(!PUB.includes(f)){res.writeHead(404);return res.end('not found');}
+  if(f==='/music.mp3')return sendAudio(req,res);
   fs.readFile(path.join(__dirname,f),(e,d)=>{
     if(e){res.writeHead(404);return res.end('not found');}
     res.writeHead(200,{'Content-Type':TYPES[path.extname(f)]});res.end(d);
   });
 });
+
+function sendAudio(req,res){
+  const p=path.join(__dirname,'music.mp3');
+  fs.stat(p,(e,st)=>{
+    if(e){res.writeHead(404);return res.end('no music');}
+    const rg=/bytes=(\d*)-(\d*)/.exec(req.headers.range||'');let a=0,b=st.size-1;
+    if(rg){a=rg[1]?+rg[1]:0;b=rg[2]?Math.min(+rg[2],b):b;}
+    if(a>b||a>=st.size){res.writeHead(416,{'Content-Range':'bytes */'+st.size});return res.end();}
+    const h={'Content-Type':'audio/mpeg','Accept-Ranges':'bytes','Content-Length':b-a+1,'Cache-Control':'public, max-age=86400'};
+    if(rg){h['Content-Range']='bytes '+a+'-'+b+'/'+st.size;res.writeHead(206,h);}else res.writeHead(200,h);
+    fs.createReadStream(p,{start:a,end:b}).pipe(res);
+  });
+}
