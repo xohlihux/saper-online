@@ -541,7 +541,7 @@ const banner=on=>{bar.style.display=on?'block':'none';if(on)bar.textContent=tr('
 const MSGH=ws.onmessage;
 function wire(sock){
   const raw=sock.send.bind(sock);
-  sock.send=str=>{try{const o=JSON.parse(str);if(o.t==='create'||o.t==='join'){o.pid=PID;o.col=SET.col;str=JSON.stringify(o);}else if(o.t==='leave')setRoom('');}catch(e){}return raw(str);};
+  sock.send=str=>{try{const o=JSON.parse(str);if(o.t==='create'||o.t==='join'||o.t==='resume'){o.pid=PID;o.col=SET.col;try{o.ak=localStorage.getItem('adm')||'';}catch(e){}str=JSON.stringify(o);}else if(o.t==='leave')setRoom('');}catch(e){}return raw(str);};
   sock.onmessage=onMsg;
   sock.onclose=()=>{if(manual)return;banner(true);retry();};
   sock.onopen=()=>{tries=0;banner(false);if(curRoom)sock.send(JSON.stringify({t:'resume',pid:PID,code:curRoom}));};
@@ -582,7 +582,7 @@ function onRFull(m){
   drawTop();draw();
 }
 function raceEnd(m){
-  const pe=m.pl.find(p=>p.sl===m.winner);window.__log&&window.__log({k:m.md==='daily'?'daily':'race',w:m.winner===ME,N:m.N,M:m.M,ms:pe?pe.dn:0,md:m.md});
+  const pe=m.pl.find(p=>p.sl===m.winner);if(window.CHEATED&&m.winner===ME)return;window.__log&&window.__log({k:m.md==='daily'?'daily':'race',w:m.winner===ME,N:m.N,M:m.M,ms:pe?pe.dn:0,md:m.md});
   if(m.winner===ME){
     vib([80,60,80,60,250]);P.rw=(P.rw||0)+1;if(m.md==='daily')dailyDone(pe?pe.dn:0,m.day);
     toast(tr('youWonRace'),'#22c55e');rollDrop();saveP();
@@ -982,4 +982,71 @@ window.applyLang();
 .lrow span{display:block}
 .ios{max-width:340px;margin:0 auto 10px;padding:8px 30px 8px 8px;background:#1e293b;border:3px solid #38bdf8;font-size:13px;position:relative;text-align:left}
 .ios b{position:absolute;right:8px;top:6px}
-</style></body></html>
+</style>
+<script>
+(function(){
+const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e;};
+const L2=a=>a[LANG==='ru'?0:1];
+let ADMOK=false,XR=[],XON=false,GOD=false,pend='',warned=false;window.CHEATED=false;
+try{ADMOK=!!localStorage.getItem('adm');}catch(e){}
+const dec1=window.__dec;
+window.__dec=m=>{
+  dec1(m);
+  if((m.t==='full'||m.t==='rfull')&&m.status==='play'&&!m.run&&!m.el){window.CHEATED=false;warned=false;}
+  if(m.t==='admin'){
+    if(m.ok){ADMOK=true;try{localStorage.setItem('adm',pend);}catch(e){}toast(L2(['🛠 Режим создателя включён','🛠 Creator mode enabled']),'#22d3ee');}
+    else{ADMOK=false;try{localStorage.removeItem('adm');}catch(e){}toast(L2(['Неверный ключ','Wrong key']),'#f87171');}
+    sync2();if($('sets').style.display==='block')showSets();
+  }
+  if(m.t==='xray'){XR=m.mines;draw();}
+  if(m.t==='god'){GOD=m.on;panel();}
+};
+const onWin5=onWin;onWin=function(m){if(window.CHEATED)return;onWin5(m);};
+const log5=window.__log;window.__log=o=>{if(window.CHEATED)return;log5(o);};
+const draw5=draw;
+draw=function(){
+  draw5();if(!XON||!XR.length||!N)return;
+  const R=window.__R.get(),s=C*scale,w=cv.clientWidth,h=cv.clientHeight;let bx=ox,by=oy;
+  if(R.RACE){const k=R.RB.findIndex(b=>b.s===R.ME);if(k<0)return;bx=ox+k*(N+3)*s;by=oy+2*s;}
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  XR.forEach(i=>{const x=i%N,y=(i-x)/N,px=bx+x*s,py=by+y*s;if(px>w||py>h||px+s<0||py+s<0)return;
+    if(s<12){ctx.fillStyle='rgba(239,68,68,0.9)';ctx.fillRect(px,py,Math.max(1,s-1),Math.max(1,s-1));}
+    else{ctx.fillStyle='rgba(239,68,68,0.35)';ctx.fillRect(px,py,s-1,s-1);ctx.globalAlpha=0.9;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=Math.floor(s*0.6)+'px sans-serif';ctx.fillText('💣',px+s/2,py+s/2+1);ctx.globalAlpha=1;}});
+};
+setInterval(()=>{if(XON&&ADMOK&&ws.readyState===1)send({t:'cheat',a:'xray'});},1500);
+const ab=el('button','','🛠');ab.id='adm';ab.style.cssText='padding:10px 12px;display:none';
+try{$('bar').insertBefore(ab,$('chatbtn'));}catch(e){$('bar').appendChild(ab);}
+const pn=el('div');pn.id='cheat';pn.style.cssText='display:none;position:fixed;left:8px;right:8px;bottom:78px;background:#0a0d12;border:3px solid #22d3ee;padding:8px;z-index:15;text-align:center';
+document.body.appendChild(pn);
+function use(a){if(!warned){warned=true;toast(L2(['🛠 Партия с читами не идёт в статистику','🛠 Cheated games are not counted in stats']),'#9ca3af');}window.CHEATED=true;send({t:'cheat',a});}
+function panel(){
+  pn.textContent='';
+  const b=(txt,fn)=>{const x=el('button','',txt);x.style.cssText='margin:3px;padding:8px 10px;font-size:14px';x.onclick=fn;pn.appendChild(x);};
+  b((XON?'☑ ':'☐ ')+L2(['Рентген','X-ray']),()=>{XON=!XON;if(XON){use('xray');}else{XR=[];draw();}panel();});
+  b(L2(['Безопасная клетка','Safe cell']),()=>use('safe'));
+  b(L2(['Победа сейчас','Win now']),()=>use('allsafe'));
+  b(L2(['Флаги на все мины','Flag all mines']),()=>use('flagall'));
+  b((GOD?'☑ ':'☐ ')+L2(['Режим бога','God mode']),()=>use('god'));
+}
+ab.onclick=()=>{if(pn.style.display==='none'){panel();pn.style.display='block';}else pn.style.display='none';};
+function sync2(){ab.style.display=ADMOK?'':'none';if(!ADMOK)pn.style.display='none';}
+sync2();
+const showSets5=showSets;
+showSets=function(){
+  showSets5();const d=$('sets'),ref=d.children[d.children.length-2],g=el('div','grp');
+  g.appendChild(el('div','cap',L2(['🛠 РЕЖИМ СОЗДАТЕЛЯ','🛠 CREATOR MODE'])));
+  if(!ADMOK){
+    const i=el('input','led');i.type='password';i.placeholder=L2(['Секретный ключ','Secret key']);i.style.fontSize='16px';
+    const b=el('button','tile',L2(['Включить','Unlock']));b.onclick=()=>{const k=i.value.trim();if(!k)return;pend=k;send({t:'admin',key:k});};
+    g.append(i,b);
+  }else{
+    g.appendChild(el('p','small',L2(['✔ Включён. Кнопка 🛠 появилась в игре.','✔ Enabled. The 🛠 button is available in games.'])));
+    const u=el('button','tile',L2(['Открыть все скины и темы','Unlock all skins and themes']));
+    u.onclick=()=>{P.own=SK.map((k,x)=>x);P.th={};['classic','ocean','sunset','forest','gold'].forEach(t=>{P.th[t]=1;});P.ach=P.ach||{};window.__AC.get().forEach(a=>{P.ach[a.id]=1;});saveP();toast(L2(['Всё открыто','Everything unlocked']),'#22c55e');};
+    const o=el('button','tile',L2(['Выключить','Disable']));o.onclick=()=>{try{localStorage.removeItem('adm');}catch(e){}ADMOK=false;XON=false;XR=[];sync2();showSets();};
+    g.append(u,o);
+  }
+  d.insertBefore(g,ref);
+};
+})();
+</script></body></html>
